@@ -265,6 +265,11 @@ class AuthenticatedMovieApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
 
+    def test_retrieve_nonexistent_movie(self):
+        url = detail_url(1000)
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_create_movie_forbidden(self):
         payload = {
             "title": "Movie1",
@@ -325,6 +330,14 @@ class AdminMovieTests(TestCase):
         self.assertEqual(genres.count(), 1)
         self.assertEqual(actors.count(), 1)
 
+    def test_create_movie_with_invalid_data(self):
+        payload = {
+            "description": "Sample description",
+            "duration": 90
+        }
+        res = self.client.post(MOVIE_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_delete_movie_not_allowed(self):
         movie = sample_movie()
         url = detail_url(movie.id)
@@ -336,3 +349,12 @@ class AdminMovieTests(TestCase):
         url = detail_url(movie.id)
         res = self.client.put(url, {})
         self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_upload_image_to_nonexistent_movie(self):
+        url = image_upload_url(1000)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format="JPEG")
+            ntf.seek(0)
+            res = self.client.post(url, {"image": ntf}, format="multipart")
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
