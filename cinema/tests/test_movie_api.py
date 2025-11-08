@@ -237,6 +237,24 @@ class AuthenticatedMovieApiTests(TestCase):
         self.assertIn(serializer2.data, res.data)
         self.assertNotIn(serializer1.data, res.data)
 
+    def test_invalid_genre_filter(self):
+        movie= sample_movie()
+        genre = sample_genre()
+        movie.genres.add(genre)
+        res = self.client.get(
+            MOVIE_URL, {"genres": 100}
+        )
+        self.assertEqual(len(res.data), 0)
+
+    def test_invalid_actor_filter(self):
+        movie= sample_movie()
+        actor = sample_actor()
+        movie.actors.add(actor)
+        res = self.client.get(
+            MOVIE_URL, {"actors": 100}
+        )
+        self.assertEqual(len(res.data), 0)
+
     def test_retrieve_movie_detail(self):
         movie = sample_movie()
         movie.genres.add(sample_genre())
@@ -254,6 +272,16 @@ class AuthenticatedMovieApiTests(TestCase):
             "duration": 90
         }
         res = self.client.post(MOVIE_URL, payload)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_upload_image_forbidden(self):
+        movie = sample_movie()
+        url = image_upload_url(movie.id)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format="JPEG")
+            ntf.seek(0)
+            res = self.client.post(url, {"image": ntf}, format="multipart")
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
 class AdminMovieTests(TestCase):
